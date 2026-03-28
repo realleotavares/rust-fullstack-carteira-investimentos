@@ -10,6 +10,8 @@ pub enum AppError {
     InvalidCredentials,
     #[error("Asset does not exist")]
     AssetDoesNotExist,
+    #[error(transparent)]
+    Database(#[from] sqlx::Error),
 }
 
 #[derive(Serialize)]
@@ -27,6 +29,7 @@ impl IntoResponse for AppError {
             Self::MissingAuthorization => StatusCode::BAD_REQUEST,
             Self::InvalidCredentials => StatusCode::UNAUTHORIZED,
             Self::AssetDoesNotExist => StatusCode::NOT_FOUND,
+            Self::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
         (status, Json(error_response)).into_response()

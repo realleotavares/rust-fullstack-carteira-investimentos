@@ -1,9 +1,9 @@
-use std::collections::HashMap;
-
-use axum::{Json, Router, extract::State, routing::get};
+use axum::{Json, Router, routing::get};
 use serde::Deserialize;
 
-use crate::{app::AppState, auth::admin::Admin, error::AppError, models::Asset};
+use crate::{
+    app::AppState, auth::admin::Admin, error::AppError, models::Asset, repository::Repository,
+};
 
 pub fn router() -> Router<AppState> {
     Router::new().route(
@@ -13,9 +13,9 @@ pub fn router() -> Router<AppState> {
 }
 
 #[tracing::instrument(skip_all)]
-async fn list_assets(state: State<AppState>) -> Json<HashMap<i64, Asset>> {
-    let assets = state.assets.lock().await;
-    Json(assets.clone())
+async fn list_assets(repostiory: Repository) -> Result<Json<Vec<Asset>>, AppError> {
+    let assets = repostiory.list_assets().await?;
+    Ok(Json(assets))
 }
 
 #[derive(Deserialize)]
@@ -27,27 +27,14 @@ struct CreateAssetRequest {
 #[tracing::instrument(skip_all)]
 async fn create_asset(
     _: Admin,
-    state: State<AppState>,
+    repostiory: Repository,
     Json(request): Json<CreateAssetRequest>,
-) -> Json<Asset> {
-    let mut assets = state.assets.lock().await;
+) -> Result<Json<Asset>, AppError> {
+    let new_asset = repostiory
+        .create_asset(request.name, request.unit_value)
+        .await?;
 
-    let id = assets
-        .values()
-        .map(|asset| asset.id)
-        .max()
-        .unwrap_or_default()
-        + 1;
-
-    let new_asset = Asset {
-        id,
-        name: request.name,
-        unit_value: request.unit_value,
-    };
-
-    assets.insert(id, new_asset.clone());
-
-    Json(new_asset)
+    Ok(Json(new_asset))
 }
 
 #[derive(Deserialize)]
@@ -60,22 +47,67 @@ struct UpdateAssetRequest {
 #[tracing::instrument(skip_all)]
 async fn update_asset(
     _: Admin,
-    state: State<AppState>,
+    repostiory: Repository,
     Json(request): Json<UpdateAssetRequest>,
 ) -> Result<Json<Asset>, AppError> {
-    let mut assets = state.assets.lock().await;
+    match repostiory
+        .update_asset(request.id, request.name, request.unit_value)
+        .await?
+    {
+        Some(updated_asset) => Ok(Json(updated_asset)),
+        None => Err(AppError::AssetDoesNotExist),
+    }
+}
 
-    let Some(existing_asset) = assets.get_mut(&request.id) else {
-        return Err(AppError::AssetDoesNotExist);
-    };
+#[cfg(test)]
+mod tests {
+    use sqlx::PgPool;
 
-    if let Some(new_name) = request.name {
-        existing_asset.name = new_name;
+    use super::*;
+
+    #[sqlx::test]
+    async fn test_create_asset(db: PgPool) {
+        let request = CreateAssetRequest {
+            name: "Bitcoin".to_string(),
+            unit_value: 10.0,
+        };
+        let Json(new_asset) = create_asset(Admin, db.into(), Json(request))
+            .await
+            .expect("success");
+
+        assert_eq!(new_asset.id, 1);
+        assert_eq!(new_asset.name, "Bitcoin");
+        assert_eq!(new_asset.unit_value, 10.0);
+
+        insta::assert_json_snapshot!(new_asset);
     }
 
-    if let Some(new_unit_value) = request.unit_value {
-        existing_asset.unit_value = new_unit_value;
+    #[sqlx::test(fixtures("bitcoin_asset"))]
+    async fn test_list_assets(db: PgPool) {
+        let Json(assets) = list_assets(db.into()).await.expect("success");
+
+        assert_eq!(assets.len(), 1);
+        assert_eq!(assets[0].name, "Bitcoin");
+
+        insta::assert_json_snapshot!(assets);
     }
 
-    Ok(Json(existing_asset.clone()))
+    #[sqlx::test(fixtures("bitcoin_asset"))]
+    async fn test_update_asset(db: PgPool) {
+        let request = UpdateAssetRequest {
+            id: 1,
+            name: Some("Ethereum".to_string()),
+            unit_value: Some(20.0),
+        };
+
+        let Json(updated_asset) = update_asset(Admin, db.into(), Json(request))
+            .await
+            .expect("success");
+
+        assert_eq!(updated_asset.id, 1);
+        assert_eq!(updated_asset.name, "Ethereum");
+        assert_eq!(updated_asset.unit_value, 20.0);
+
+        insta::assert_json_snapshot!(updated_asset);
+    }
 }
