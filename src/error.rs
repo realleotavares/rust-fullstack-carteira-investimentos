@@ -1,0 +1,34 @@
+use axum::{Json, http::StatusCode, response::IntoResponse};
+use serde::Serialize;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum AppError {
+    #[error("Missing Authorization Headers")]
+    MissingAuthorization,
+    #[error("Invalid Credentials")]
+    InvalidCredentials,
+    #[error("Asset does not exist")]
+    AssetDoesNotExist,
+}
+
+#[derive(Serialize)]
+pub struct ErrorResponse {
+    error: String,
+}
+
+impl IntoResponse for AppError {
+    fn into_response(self) -> axum::response::Response {
+        let error_response = ErrorResponse {
+            error: self.to_string(),
+        };
+
+        let status = match self {
+            Self::MissingAuthorization => StatusCode::BAD_REQUEST,
+            Self::InvalidCredentials => StatusCode::UNAUTHORIZED,
+            Self::AssetDoesNotExist => StatusCode::NOT_FOUND,
+        };
+
+        (status, Json(error_response)).into_response()
+    }
+}
