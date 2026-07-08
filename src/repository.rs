@@ -102,7 +102,7 @@ impl Repository {
                         'value_delta', (a.unit_value - oa.bought_for) * oa.quantity
                     )
                     ORDER BY oa.bought_at DESC
-                ) AS "purchase_history!: sqlx::types::Json<Vec<crate::models::PurchaseHistory>>"
+                ) AS "purchase_history!"
             FROM assets a
             JOIN owned_assets oa ON oa.asset_id = a.id
             WHERE oa.user_id = $1
