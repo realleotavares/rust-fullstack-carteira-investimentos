@@ -2,6 +2,9 @@
 FROM rust:slim-bookworm AS builder
 WORKDIR /app
 
+# Instala dependências do sistema para compilar o boring-sys (BoringSSL)
+RUN apt-get update && apt-get install -y build-essential cmake perl golang
+
 # Copia os arquivos do projeto
 COPY . .
 
