@@ -1,6 +1,6 @@
 # Carteira de Investimentos - Rustful Stack
 
-Aplicação Fullstack desenvolvida inteiramente em Rust para gerenciamento de uma carteira de investimentos pessoal. Construída como parte do desafio da [DIO](https://www.dio.me), evoluindo o projeto base com novas funcionalidades.
+Aplicação Fullstack desenvolvida inteiramente em Rust para gerenciamento de uma carteira de investimentos pessoal. Construída como parte do desafio da DIO / Santander, evoluindo o projeto base com novas funcionalidades.
 
 ---
 
