@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                a.id         AS asset_id,\n                a.name       AS name,\n                a.unit_value AS unit_value,\n                SUM((a.unit_value - oa.bought_for) * oa.quantity) AS \"value_delta!\",\n                SUM(oa.quantity)                                   AS \"quantity!\",\n                json_agg(\n                    json_build_object(\n                        'bought_at',   to_char(oa.bought_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI'),\n                        'bought_for',  oa.bought_for,\n                        'quantity',    oa.quantity,\n                        'value_delta', (a.unit_value - oa.bought_for) * oa.quantity\n                    )\n                    ORDER BY oa.bought_at DESC\n                ) AS \"purchase_history!: sqlx::types::Json<Vec<PurchaseHistory>>\"\n            FROM assets a\n            JOIN owned_assets oa ON oa.asset_id = a.id\n            WHERE oa.user_id = $1\n            GROUP BY a.id, a.name, a.unit_value\n            ORDER BY a.name;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "asset_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "unit_value",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 3,
+        "name": "value_delta!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 4,
+        "name": "quantity!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 5,
+        "name": "purchase_history!: sqlx::types::Json<Vec<PurchaseHistory>>",
+        "type_info": "Json"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "f64325718daaff794cdd08569e7b423ede4b927664575e1d18af5e3acaf28271"
+}

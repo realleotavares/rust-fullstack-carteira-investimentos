@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO owned_assets (user_id, asset_id, quantity, bought_for)\n             VALUES ($1, $2, $3, $4);",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Float8",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f4bfd547345a5722af7e6d8f2f0aff9defd9e92c6ba057c3fbe57aed8b709965"
+}
