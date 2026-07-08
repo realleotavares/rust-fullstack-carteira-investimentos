@@ -102,7 +102,7 @@ impl Repository {
                         'value_delta', (a.unit_value - oa.bought_for) * oa.quantity
                     )
                     ORDER BY oa.bought_at DESC
-                ) AS "purchase_history!"
+                ) AS "purchase_history!: sqlx::types::Json<_>"
             FROM assets a
             JOIN owned_assets oa ON oa.asset_id = a.id
             WHERE oa.user_id = $1
