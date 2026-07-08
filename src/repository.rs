@@ -5,7 +5,7 @@ use sqlx::PgPool;
 
 use crate::{
     app::AppState,
-    models::{Asset, OwnedAsset, UserRecord},
+    models::{Asset, OwnedAsset, PurchaseHistory, UserRecord},
 };
 
 pub struct Repository {
@@ -102,7 +102,7 @@ impl Repository {
                         'value_delta', (a.unit_value - oa.bought_for) * oa.quantity
                     )
                     ORDER BY oa.bought_at DESC
-                ) AS "purchase_history!: sqlx::types::Json<_>"
+                ) AS "purchase_history!: sqlx::types::Json<Vec<PurchaseHistory>>"
             FROM assets a
             JOIN owned_assets oa ON oa.asset_id = a.id
             WHERE oa.user_id = $1
