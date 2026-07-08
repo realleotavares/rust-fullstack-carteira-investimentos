@@ -96,14 +96,14 @@ Formulário para registrar novas posições usando o elemento `<dialog>` HTML5 -
 - Navbar fixa com nome do usuário e botão de saída
 - Rota `/` que redireciona inteligentemente para `/assets` ou `/login`
 
-### 5. Filtros Askama Customizados
-Módulo `filters` em `frontend.rs` com:
-- `|currency` - formata f64 com 2 casas decimais
-- `|abs_val` - valor absoluto para exibição de prejuízos
-- `|qty_fmt` - formatação inteligente de quantidades (remove zeros desnecessários)
+### 5. Formatação via Métodos nas Structs (View-Model)
+Para evitar problemas de compilação com a macro de filtros customizados do Askama 0.15, a lógica de formatação de moeda e casas decimais (`unit_value_fmt`, `qty_fmt`, etc) foi encapsulada diretamente nas próprias `structs` (`Asset`, `OwnedAsset`, `PurchaseHistory`). Isso garante checagem de tipos estrita pelo compilador Rust.
 
 ### 6. Paralelismo nas Queries
 O handler do dashboard usa `tokio::try_join!` para buscar owned_assets e available_assets simultaneamente, reduzindo latência.
+
+### 7. Database Seeding (Carga Inicial)
+Adicionada uma migração oficial (`20260708230000_seed_assets.up.sql`) para inserir ativos pré-definidos (Bitcoin, Ethereum, Tesouro Selic, Apple, Nvidia, Microsoft) assim que o usuário rodar as migrações, para que a carteira já esteja pronta para uso na interface web.
 
 ---
 
@@ -128,15 +128,9 @@ cargo insta review
 1. Acesse http://localhost:3000 - você será redirecionado para `/login`
 2. Digite qualquer username/password - será criada uma conta automaticamente no primeiro acesso
 3. Faça login novamente com as mesmas credenciais para autenticar
-4. Cadastre ativos via API (requer header de admin):
-   ```bash
-   curl -X POST http://localhost:3000/api/assets \
-     -H "Authorization: im-the-admin" \
-     -H "Content-Type: application/json" \
-     -d '{"name": "Bitcoin", "unit_value": 350000.00}'
-   ```
-5. No dashboard, clique em **+ registrar compra** e registre uma posição
-6. Veja o resultado com lucro/prejuízo e histórico expandível
+4. No dashboard, clique em **+ registrar compra**
+5. Escolha um dos ativos que já foram populados no banco pela migração de *seed* (ex: Bitcoin, Apple, Tesouro).
+6. Registre a compra e veja o resultado com lucro/prejuízo e histórico expandível na tabela!
 
 ---
 
