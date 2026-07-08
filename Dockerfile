@@ -3,7 +3,7 @@ FROM rust:slim-bookworm AS builder
 WORKDIR /app
 
 # Instala dependências do sistema para compilar o boring-sys e bindgen
-RUN apt-get update && apt-get install -y build-essential cmake perl golang clang libclang-dev
+RUN apt-get update && apt-get install -y build-essential cmake perl golang clang libclang-dev pkg-config libssl-dev git python3
 
 # Copia os arquivos do projeto
 COPY . .
