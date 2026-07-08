@@ -36,8 +36,9 @@ struct AssetsPage {
     user_name: String,
     owned_assets: Vec<OwnedAsset>,
     available_assets: Vec<Asset>,
-    total_invested: f64,
-    total_delta: f64,
+    total_invested_fmt: String,
+    total_delta_fmt: String,
+    total_delta_is_positive: bool,
 }
 
 // ─── Handlers ────────────────────────────────────────────────────────────────
@@ -111,8 +112,9 @@ async fn assets_page(
         user_name: user.username().clone(),
         owned_assets,
         available_assets,
-        total_invested,
-        total_delta,
+        total_invested_fmt: format!("{:.2}", total_invested),
+        total_delta_fmt: format!("{:.2}", total_delta.abs()),
+        total_delta_is_positive: total_delta >= 0.0,
     }
     .render()?;
 
@@ -137,33 +139,4 @@ async fn purchase_asset(
         .await?;
 
     Ok(Redirect::to("/assets"))
-}
-
-// ─── Askama Filters ──────────────────────────────────────────────────────────
-// Os filtros abaixo ficam disponíveis nos templates via sintaxe |nome_do_filtro
-
-pub mod filters {
-    use askama::Result;
-
-    /// Formata um f64 com 2 casas decimais. Ex: {{ value|currency }}
-    #[askama::filter_fn]
-    pub fn currency(value: &f64) -> Result<String> {
-        Ok(format!("{:.2}", value))
-    }
-
-    /// Valor absoluto de f64. Ex: {{ value|abs_val|currency }}
-    #[askama::filter_fn]
-    pub fn abs_val(value: &f64) -> Result<f64> {
-        Ok(value.abs())
-    }
-
-    /// Formata a quantidade de unidades (até 4 casas). Ex: {{ qty|qty_fmt }}
-    #[askama::filter_fn]
-    pub fn qty_fmt(value: &f64) -> Result<String> {
-        if value.fract() == 0.0 {
-            Ok(format!("{:.0}", value))
-        } else {
-            Ok(format!("{:.4}", value).trim_end_matches('0').to_string())
-        }
-    }
 }

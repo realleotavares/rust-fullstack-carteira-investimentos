@@ -51,14 +51,14 @@
             </div>
             <div class="bg-white/5 border border-white/10 rounded-2xl p-5 card-hover">
                 <p class="text-white/40 text-xs mb-1 uppercase tracking-wider">Total Investido</p>
-                <p class="text-2xl font-bold text-cyan-400">$ {{ total_invested|currency }}</p>
+                <p class="text-2xl font-bold text-cyan-400">$ {{ total_invested_fmt }}</p>
             </div>
             <div class="bg-white/5 border border-white/10 rounded-2xl p-5 card-hover">
                 <p class="text-white/40 text-xs mb-1 uppercase tracking-wider">Resultado Total</p>
-                {% if total_delta >= 0.0 %}
-                <p class="text-2xl font-bold text-emerald-400">+ $ {{ total_delta|currency }}</p>
+                {% if total_delta_is_positive %}
+                <p class="text-2xl font-bold text-emerald-400">+ $ {{ total_delta_fmt }}</p>
                 {% else %}
-                <p class="text-2xl font-bold text-rose-400">- $ {{ total_delta|abs_val|currency }}</p>
+                <p class="text-2xl font-bold text-rose-400">- $ {{ total_delta_fmt }}</p>
                 {% endif %}
             </div>
         </div>
@@ -92,16 +92,16 @@
                         <div>
                             <p class="font-bold text-white">{{ asset.name }}</p>
                             <p class="text-xs text-white/30 mt-0.5">
-                                {{ asset.quantity|qty_fmt }} un · cotação $ {{ asset.unit_value|currency }}
+                                {{ asset.qty_fmt() }} un · cotação $ {{ asset.unit_value_fmt() }}
                             </p>
                         </div>
                     </div>
                     <div class="text-right">
-                        {% if asset.value_delta >= 0.0 %}
-                        <p class="font-bold text-emerald-400">+ $ {{ asset.value_delta|currency }}</p>
+                        {% if asset.is_positive() %}
+                        <p class="font-bold text-emerald-400">+ $ {{ asset.value_delta_fmt() }}</p>
                         <p class="text-xs text-emerald-400/40 mt-0.5">lucro</p>
                         {% else %}
-                        <p class="font-bold text-rose-400">- $ {{ asset.value_delta|abs_val|currency }}</p>
+                        <p class="font-bold text-rose-400">- $ {{ asset.value_delta_fmt() }}</p>
                         <p class="text-xs text-rose-400/40 mt-0.5">prejuízo</p>
                         {% endif %}
                     </div>
@@ -124,13 +124,13 @@
                                 {% for purchase in asset.purchase_history.0 %}
                                 <tr class="text-white/60 hover:text-white/80 transition-colors">
                                     <td class="py-2 pr-6 text-white/40">{{ purchase.bought_at }}</td>
-                                    <td class="py-2 pr-6 text-right">{{ purchase.quantity|qty_fmt }}</td>
-                                    <td class="py-2 pr-6 text-right">$ {{ purchase.bought_for|currency }}</td>
+                                    <td class="py-2 pr-6 text-right">{{ purchase.qty_fmt() }}</td>
+                                    <td class="py-2 pr-6 text-right">$ {{ purchase.bought_for_fmt() }}</td>
                                     <td class="py-2 text-right">
-                                        {% if purchase.value_delta >= 0.0 %}
-                                        <span class="text-emerald-400">+ $ {{ purchase.value_delta|currency }}</span>
+                                        {% if purchase.is_positive() %}
+                                        <span class="text-emerald-400">+ $ {{ purchase.value_delta_fmt() }}</span>
                                         {% else %}
-                                        <span class="text-rose-400">- $ {{ purchase.value_delta|abs_val|currency }}</span>
+                                        <span class="text-rose-400">- $ {{ purchase.value_delta_fmt() }}</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -164,7 +164,7 @@
                     class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-cyan-400/50 transition-all appearance-none">
                     {% for asset in available_assets %}
                     <option value="{{ asset.id }}" class="bg-slate-900 text-white">
-                        {{ asset.name }} — $ {{ asset.unit_value|currency }}
+                        {{ asset.name }} — $ {{ asset.unit_value_fmt() }}
                     </option>
                     {% endfor %}
                 </select>
