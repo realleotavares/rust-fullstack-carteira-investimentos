@@ -9,7 +9,7 @@ COPY . .
 ENV SQLX_OFFLINE=true
 
 # Compila o projeto em modo otimizado
-RUN cargo build --release
+RUN cargo build --release -j 1
 
 # Run Stage (Imagem final super leve)
 FROM debian:bookworm-slim
