@@ -5,7 +5,7 @@ use sqlx::PgPool;
 
 use crate::{
     app::AppState,
-    models::{Asset, UserRecord},
+    models::{Asset, OwnedAsset, UserRecord},
 };
 
 pub struct Repository {
@@ -80,6 +80,60 @@ impl Repository {
         )
         .fetch_optional(&self.db)
         .await
+    }
+
+    /// Lista todos os ativos que o usuário possui, agrupados por ativo.
+    /// Calcula delta total (lucro/prejuízo) e agrega o histórico de compras como JSON.
+    pub async fn list_owned_assets(&self, user_id: i64) -> sqlx::Result<Vec<OwnedAsset>> {
+        sqlx::query_as!(
+            OwnedAsset,
+            r#"
+            SELECT
+                a.id         AS asset_id,
+                a.name       AS name,
+                a.unit_value AS unit_value,
+                SUM((a.unit_value - oa.bought_for) * oa.quantity) AS "value_delta!",
+                SUM(oa.quantity)                                   AS "quantity!",
+                json_agg(
+                    json_build_object(
+                        'bought_at',   to_char(oa.bought_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI'),
+                        'bought_for',  oa.bought_for,
+                        'quantity',    oa.quantity,
+                        'value_delta', (a.unit_value - oa.bought_for) * oa.quantity
+                    )
+                    ORDER BY oa.bought_at DESC
+                ) AS "purchase_history!: sqlx::types::Json<Vec<crate::models::PurchaseHistory>>"
+            FROM assets a
+            JOIN owned_assets oa ON oa.asset_id = a.id
+            WHERE oa.user_id = $1
+            GROUP BY a.id, a.name, a.unit_value
+            ORDER BY a.name;
+            "#,
+            user_id
+        )
+        .fetch_all(&self.db)
+        .await
+    }
+
+    /// Registra uma nova compra de ativo para o usuário.
+    pub async fn add_owned_asset(
+        &self,
+        user_id: i64,
+        asset_id: i64,
+        quantity: f64,
+        bought_for: f64,
+    ) -> sqlx::Result<()> {
+        sqlx::query!(
+            "INSERT INTO owned_assets (user_id, asset_id, quantity, bought_for)
+             VALUES ($1, $2, $3, $4);",
+            user_id,
+            asset_id,
+            quantity,
+            bought_for
+        )
+        .execute(&self.db)
+        .await?;
+        Ok(())
     }
 }
 

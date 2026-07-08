@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carteira | {{ user_name }}</title>
+    <meta name="description" content="Dashboard da sua carteira de investimentos em Rust.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Space Mono', monospace; }
+        details > summary { list-style: none; cursor: pointer; }
+        details > summary::-webkit-details-marker { display: none; }
+        details[open] .chevron { transform: rotate(90deg); }
+        .chevron { transition: transform 0.2s ease; display: inline-block; }
+        dialog::backdrop { background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); }
+        dialog { animation: fadeIn 0.15s ease; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0)   scale(1);    }
+        }
+        .card-hover { transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+        .card-hover:hover { border-color: rgba(255,255,255,0.2); }
+    </style>
+</head>
+<body class="bg-slate-950 min-h-screen text-white">
+
+    <!-- Navbar -->
+    <nav class="border-b border-white/10 bg-white/5 backdrop-blur-xl sticky top-0 z-10">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+            <span class="text-cyan-400 font-bold tracking-widest text-sm">◈ CARTEIRA</span>
+            <div class="flex items-center gap-4">
+                <span class="text-white/40 text-xs hidden sm:block">{{ user_name }}</span>
+                <a id="logout-btn" href="/logout"
+                   class="text-xs text-white/40 hover:text-red-400 border border-white/10 hover:border-red-400/30 rounded-lg px-3 py-1.5 transition-all duration-200">
+                    sair
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-5xl mx-auto px-4 py-8 space-y-6">
+
+        <!-- Cards de Sumário -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-5 card-hover">
+                <p class="text-white/40 text-xs mb-1 uppercase tracking-wider">Posições</p>
+                <p class="text-3xl font-bold text-white">{{ owned_assets.len() }}</p>
+            </div>
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-5 card-hover">
+                <p class="text-white/40 text-xs mb-1 uppercase tracking-wider">Total Investido</p>
+                <p class="text-2xl font-bold text-cyan-400">$ {{ total_invested|currency }}</p>
+            </div>
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-5 card-hover">
+                <p class="text-white/40 text-xs mb-1 uppercase tracking-wider">Resultado Total</p>
+                {% if total_delta >= 0.0 %}
+                <p class="text-2xl font-bold text-emerald-400">+ $ {{ total_delta|currency }}</p>
+                {% else %}
+                <p class="text-2xl font-bold text-rose-400">- $ {{ total_delta|abs_val|currency }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Header da seção -->
+        <div class="flex items-center justify-between pt-2">
+            <h1 class="text-white/60 text-xs uppercase tracking-widest">Meus Ativos</h1>
+            <button id="open-purchase-modal"
+                onclick="document.getElementById('purchase-dialog').showModal()"
+                class="text-xs bg-cyan-500/20 border border-cyan-400/30 text-cyan-400 rounded-xl px-4 py-2 hover:bg-cyan-500/30 hover:shadow-[0_0_15px_rgba(34,211,238,0.2)] transition-all duration-200">
+                + registrar compra
+            </button>
+        </div>
+
+        <!-- Estado vazio -->
+        {% if owned_assets.is_empty() %}
+        <div class="text-center py-20 text-white/20">
+            <p class="text-5xl mb-4">◌</p>
+            <p class="text-sm">Nenhuma posição ainda.</p>
+            <p class="text-xs mt-1 text-white/10">Registre sua primeira compra acima.</p>
+        </div>
+
+        <!-- Lista de Ativos -->
+        {% else %}
+        <div class="space-y-3">
+            {% for asset in owned_assets %}
+            <details class="group bg-white/5 border border-white/10 rounded-2xl overflow-hidden card-hover">
+                <summary class="flex items-center justify-between p-5 select-none">
+                    <div class="flex items-center gap-3">
+                        <span class="chevron text-white/20 text-xs">▶</span>
+                        <div>
+                            <p class="font-bold text-white">{{ asset.name }}</p>
+                            <p class="text-xs text-white/30 mt-0.5">
+                                {{ asset.quantity|qty_fmt }} un · cotação $ {{ asset.unit_value|currency }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        {% if asset.value_delta >= 0.0 %}
+                        <p class="font-bold text-emerald-400">+ $ {{ asset.value_delta|currency }}</p>
+                        <p class="text-xs text-emerald-400/40 mt-0.5">lucro</p>
+                        {% else %}
+                        <p class="font-bold text-rose-400">- $ {{ asset.value_delta|abs_val|currency }}</p>
+                        <p class="text-xs text-rose-400/40 mt-0.5">prejuízo</p>
+                        {% endif %}
+                    </div>
+                </summary>
+
+                <!-- Histórico expandível -->
+                <div class="border-t border-white/10 bg-black/20 px-5 pb-4 pt-3">
+                    <p class="text-xs text-white/25 uppercase tracking-wider mb-3">Histórico de Compras</p>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-xs min-w-max">
+                            <thead>
+                                <tr class="text-white/25 border-b border-white/5">
+                                    <th class="text-left pb-2 pr-6 font-normal">Data (UTC)</th>
+                                    <th class="text-right pb-2 pr-6 font-normal">Quantidade</th>
+                                    <th class="text-right pb-2 pr-6 font-normal">Preço pago</th>
+                                    <th class="text-right pb-2 font-normal">Resultado</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-white/5">
+                                {% for purchase in asset.purchase_history.0 %}
+                                <tr class="text-white/60 hover:text-white/80 transition-colors">
+                                    <td class="py-2 pr-6 text-white/40">{{ purchase.bought_at }}</td>
+                                    <td class="py-2 pr-6 text-right">{{ purchase.quantity|qty_fmt }}</td>
+                                    <td class="py-2 pr-6 text-right">$ {{ purchase.bought_for|currency }}</td>
+                                    <td class="py-2 text-right">
+                                        {% if purchase.value_delta >= 0.0 %}
+                                        <span class="text-emerald-400">+ $ {{ purchase.value_delta|currency }}</span>
+                                        {% else %}
+                                        <span class="text-rose-400">- $ {{ purchase.value_delta|abs_val|currency }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </details>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+    </div><!-- /container -->
+
+    <!-- Modal: Registrar Compra -->
+    <dialog id="purchase-dialog"
+        class="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-sm text-white shadow-[0_0_50px_rgba(34,211,238,0.08)]">
+        <form method="POST" action="/assets/purchase" class="flex flex-col gap-4">
+
+            <div class="flex items-center justify-between mb-1">
+                <h2 class="text-sm font-bold uppercase tracking-widest text-white">Nova Compra</h2>
+                <button type="button" id="close-purchase-modal"
+                    onclick="document.getElementById('purchase-dialog').close()"
+                    class="text-white/30 hover:text-white transition-colors text-xl leading-none">✕</button>
+            </div>
+
+            <div>
+                <label class="text-xs text-white/40 uppercase tracking-wider mb-1.5 block">Ativo</label>
+                <select id="asset-select" name="asset_id" required
+                    class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-cyan-400/50 transition-all appearance-none">
+                    {% for asset in available_assets %}
+                    <option value="{{ asset.id }}" class="bg-slate-900 text-white">
+                        {{ asset.name }} — $ {{ asset.unit_value|currency }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="text-xs text-white/40 uppercase tracking-wider mb-1.5 block">Quantidade</label>
+                <input id="quantity-input"
+                    type="number" name="quantity"
+                    step="any" min="0.0001" required
+                    placeholder="ex: 0.5"
+                    class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:outline-none focus:border-cyan-400/50 transition-all">
+            </div>
+
+            <div>
+                <label class="text-xs text-white/40 uppercase tracking-wider mb-1.5 block">Preço pago por unidade ($)</label>
+                <input id="price-input"
+                    type="number" name="bought_for"
+                    step="any" min="0" required
+                    placeholder="ex: 42000.00"
+                    class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:outline-none focus:border-cyan-400/50 transition-all">
+            </div>
+
+            <button id="confirm-purchase-btn" type="submit"
+                class="mt-1 px-4 py-3 bg-cyan-500/20 border border-cyan-400/30 rounded-xl text-cyan-400 font-bold hover:bg-cyan-500/30 hover:shadow-[0_0_20px_rgba(34,211,238,0.25)] transition-all duration-200 uppercase tracking-wider text-xs">
+                confirmar compra
+            </button>
+        </form>
+    </dialog>
+
+</body>
+</html>
