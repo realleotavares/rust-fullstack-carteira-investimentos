@@ -4,13 +4,13 @@ Aplicação Fullstack desenvolvida inteiramente em Rust para gerenciamento de um
 
 ---
 
-## 🚀 Projeto Online (Live Demo)
+## Projeto Online (Live Demo)
 
 A aplicação está disponível 100% online e funcional na nuvem:
-👉 **[Acessar Carteira de Investimentos](https://rust-fullstack-carteira-investimentos.onrender.com)**
+**[Acessar Carteira de Investimentos](https://rust-fullstack-carteira-investimentos.onrender.com)**
 
-- **Backend / Web Server:** Hospedado no [Render.com](https://render.com) utilizando um `Dockerfile` otimizado (Multi-stage build).
-- **Banco de Dados:** Hospedado no [Neon.tech](https://neon.tech) (PostgreSQL Serverless) com conexão segura via TLS.
+- **Backend / Web Server:** Hospedado no Render.com utilizando um `Dockerfile` otimizado (Multi-stage build).
+- **Banco de Dados:** Hospedado no Neon.tech (PostgreSQL Serverless) com conexão segura via TLS.
 
 ---
 
